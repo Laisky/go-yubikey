@@ -8,7 +8,6 @@ import (
 
 	gutils "github.com/Laisky/go-utils/v4"
 	gcrypto "github.com/Laisky/go-utils/v4/crypto"
-	// glog "github.com/Laisky/go-utils/v4/log"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/stretchr/testify/require"
 )
