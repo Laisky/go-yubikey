@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	// yubikeyPIVCAPem public ca for yubikey PIV slots
-	yubikeyPIVCAPem = []byte(`-----BEGIN CERTIFICATE-----
+	// pivCAPem public ca for yubikey PIV slots
+	pivCAPem = []byte(`-----BEGIN CERTIFICATE-----
 MIIDFzCCAf+gAwIBAgIDBAZHMA0GCSqGSIb3DQEBCwUAMCsxKTAnBgNVBAMMIFl1
 YmljbyBQSVYgUm9vdCBDQSBTZXJpYWwgMjYzNzUxMCAXDTE2MDMxNDAwMDAwMFoY
 DzIwNTIwNDE3MDAwMDAwWjArMSkwJwYDVQQDDCBZdWJpY28gUElWIFJvb3QgQ0Eg
@@ -41,18 +41,24 @@ bW5yWvyS9zNXaqGaUmP3U9/b6DlHdDogMLu3VLpBB9bm5bjaKWWJYgWltCVgUbFq
 Fqyi4+JE014cSgR57Jcu3dZiehB6UtAPgad9L5cNvua/IWRmm+ANy3O2LH++Pyl8
 SREzU8onbBsjMg9QDiSf5oJLKvd/Ren+zGY7
 -----END CERTIFICATE-----`)
-	yubikeyPIVCA *x509.Certificate
+	pivCA *x509.Certificate
 )
 
 func init() {
 	var err error
-	if yubikeyPIVCA, err = gcrypto.Pem2Cert(yubikeyPIVCAPem); err != nil {
+	if pivCA, err = gcrypto.Pem2Cert(pivCAPem); err != nil {
 		glog.Shared.Panic("parse yubikey piv ca pem", zap.Error(err))
 	}
 }
 
-// ListYubikeys list all plugin yubikey cards
-func ListYubikeys(skipInvalidCard bool) (cards []*piv.YubiKey, err error) {
+// ListCards lists all Yubikey plugin cards.
+//
+// Note that Yubikey does not allow concurrent access,
+// and attempting to do so will result in the error message
+// "connecting to smart card: the smart card cannot be accessed because of other connections outstanding".
+//
+// It is your responsibility to close each card after it has been used.
+func ListCards(skipInvalidCard bool) (cards []*piv.YubiKey, err error) {
 	allCards, err := piv.Cards()
 	if err != nil {
 		return nil, errors.Wrap(err, "list all smart cards")
@@ -63,6 +69,7 @@ NEXT_CARD:
 		if strings.Contains(strings.ToLower(card), "yubikey") {
 			c, err := piv.Open(card)
 			if err != nil {
+				glog.Shared.Debug("card is invald", zap.Error(err))
 				if skipInvalidCard {
 					continue NEXT_CARD
 				}
@@ -88,8 +95,8 @@ func InputPassword(hint string) (string, error) {
 	return string(bytepw), nil
 }
 
-// VerifyYubikeyCert attest yubikey slot by yubico root ca
-func VerifyYubikeyCert(yk *piv.YubiKey, slot piv.Slot) error {
+// Attest attest yubikey slot by yubico root ca
+func Attest(yk *piv.YubiKey, slot piv.Slot) error {
 	cert, err := yk.Attest(slot)
 	if err != nil {
 		return errors.Wrap(err, "attest key")
@@ -103,7 +110,7 @@ func VerifyYubikeyCert(yk *piv.YubiKey, slot piv.Slot) error {
 	intermedia.AddCert(ak)
 
 	roots := x509.NewCertPool()
-	roots.AddCert(yubikeyPIVCA)
+	roots.AddCert(pivCA)
 	if _, err = cert.Verify(x509.VerifyOptions{
 		Roots:         roots,
 		Intermediates: intermedia,
@@ -114,8 +121,8 @@ func VerifyYubikeyCert(yk *piv.YubiKey, slot piv.Slot) error {
 	return nil
 }
 
-// YubikeyPubkey get yubikey slot's public key
-func YubikeyPubkey(yk *piv.YubiKey, pin string, slot piv.Slot) (pubkey crypto.PublicKey, err error) {
+// GetPubkey get yubikey slot's public key
+func GetPubkey(yk *piv.YubiKey, pin string, slot piv.Slot) (pubkey crypto.PublicKey, err error) {
 	cert, err := yk.Attest(slot)
 	if err != nil {
 		return nil, errors.Wrap(err, "attest key")
@@ -124,8 +131,8 @@ func YubikeyPubkey(yk *piv.YubiKey, pin string, slot piv.Slot) (pubkey crypto.Pu
 	return cert.PublicKey, nil
 }
 
-// YubikeyDecrypt decrypt by slot's private key
-func YubikeyDecrypt(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) (plaintext []byte, err error) {
+// Decrypt decrypt by slot's private key
+func Decrypt(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) (plaintext []byte, err error) {
 	cert, err := yk.Attest(slot)
 	if err != nil {
 		return nil, errors.Wrap(err, "attest key")
@@ -145,8 +152,8 @@ func YubikeyDecrypt(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) (
 	return plaintext, nil
 }
 
-// YubikeySignWithSHA256 sign by slot's private key
-func YubikeySignWithSHA256(yk *piv.YubiKey,
+// SignWithSHA256 sign by slot's private key
+func SignWithSHA256(yk *piv.YubiKey,
 	pin string,
 	slot piv.Slot,
 	content io.Reader) (signature []byte, err error) {
