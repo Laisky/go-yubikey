@@ -50,6 +50,27 @@ func init() {
 	}
 }
 
+// VerifyPIVCerts verify certs from yubikey PIV slots by PIV root ca
+func VerifyPIVCerts(certs []*x509.Certificate) error {
+	root := x509.NewCertPool()
+	root.AddCert(pivCA)
+
+	intermedia := x509.NewCertPool()
+	for _, cert := range certs[1:] {
+		intermedia.AddCert(cert)
+	}
+
+	_, err := certs[0].Verify(x509.VerifyOptions{
+		Roots:         root,
+		Intermediates: intermedia,
+	})
+	if err != nil {
+		return errors.Wrap(err, "verify cert")
+	}
+
+	return nil
+}
+
 // ListCards lists all Yubikey plugin cards.
 //
 // Note that Yubikey does not allow concurrent access,
