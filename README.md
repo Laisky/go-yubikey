@@ -32,11 +32,6 @@ func InputPassword(hint string) (string, error)
 // Attest attests a Yubikey slot by the Yubico root CA.
 func Attest(yk *piv.YubiKey, slot piv.Slot) error
 
-// GetPubkey retrieves the public key associated with the specified YubiKey slot
-func GetPubkey(yk *piv.YubiKey,
-    pin string,
-    slot piv.Slot) (pubkey crypto.PublicKey, err error)
-
 // Decrypt decrypt by slot's private key
 func Decrypt(yk *piv.YubiKey,
     pin string,
@@ -50,4 +45,8 @@ func SignWithSHA256(yk *piv.YubiKey,
     pin string,
     slot piv.Slot,
     content io.Reader) (signature []byte, err error)
+
+
+// ResetForPIV will reset card and set PUK/PIN/PIV key
+func ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) (err error)
 ```
