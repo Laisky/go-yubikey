@@ -50,7 +50,7 @@ func init() {
 	}
 }
 
-// VerifyPIVCerts verify certs from yubikey PIV slots by PIV root ca
+// VerifyPIVCerts verify certs exported from yubikey PIV slots by Yubico PIV root ca
 func VerifyPIVCerts(certs []*x509.Certificate) error {
 	root := x509.NewCertPool()
 	root.AddCert(pivCA)
@@ -71,25 +71,32 @@ func VerifyPIVCerts(certs []*x509.Certificate) error {
 	return nil
 }
 
-// ListCards lists all Yubikey plugin cards.
+// ListCards function lists all Yubikey plugin cards.
 //
 // Note that Yubikey does not allow concurrent access,
-// and attempting to do so will result in the error message
-// "connecting to smart card: the smart card cannot be accessed because of other connections outstanding".
+// and attempting to do so will result in an error message
+// "connecting to smart card: the smart card cannot be accessed
+// because of other connections outstanding".
 //
-// It is your responsibility to close each card after it has been used.
+// Therefore, it is necessary to make sure that each card is
+// properly closed after being used.
 func ListCards(skipInvalidCard bool) (cards []*piv.YubiKey, err error) {
+	// Get all available smart cards.
 	allCards, err := piv.Cards()
 	if err != nil {
 		return nil, errors.Wrap(err, "list all smart cards")
 	}
 
+	// Iterate through all smart cards.
 NEXT_CARD:
 	for _, card := range allCards {
+		// Make sure that the smart card is a YubiKey plugin card.
 		if strings.Contains(strings.ToLower(card), "yubikey") {
+			// Open the card.
 			c, err := piv.Open(card)
 			if err != nil {
-				glog.Shared.Debug("card is invald", zap.Error(err))
+				glog.Shared.Debug("card is invalid", zap.Error(err))
+				// If `skipInvalidCard` is true, skip this smart card and move on to the next one.
 				if skipInvalidCard {
 					continue NEXT_CARD
 				}
@@ -104,55 +111,60 @@ NEXT_CARD:
 	return cards, nil
 }
 
-// InputPassword read password from stdin input
+// InputPassword reads password from stdin input
+// and returns it as a string.
 func InputPassword(hint string) (string, error) {
 	fmt.Printf("%s: ", hint)
+
+	// ReadPassword reads the password from the terminal
+	// with echo disabled which ensures the input is not
+	// displayed on the screen.
 	bytepw, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
 		return "", errors.Wrap(err, "read input password")
 	}
 
+	// Convert byte slice to string
 	return string(bytepw), nil
 }
 
-// Attest attest yubikey slot by yubico root ca
-func Attest(yk *piv.YubiKey, slot piv.Slot) error {
-	cert, err := yk.Attest(slot)
-	if err != nil {
-		return errors.Wrap(err, "attest key")
-	}
-
-	ak, err := yk.AttestationCertificate()
-	if err != nil {
-		return errors.Wrap(err, "get ak")
-	}
-	intermedia := x509.NewCertPool()
-	intermedia.AddCert(ak)
-
-	roots := x509.NewCertPool()
-	roots.AddCert(pivCA)
-	if _, err = cert.Verify(x509.VerifyOptions{
-		Roots:         roots,
-		Intermediates: intermedia,
-	}); err != nil {
-		return errors.Wrap(err, "slot cert cannot verify by piv root ca")
-	}
-
-	return nil
-}
-
-// GetPubkey get yubikey slot's public key
-func GetPubkey(yk *piv.YubiKey, pin string, slot piv.Slot) (pubkey crypto.PublicKey, err error) {
-	cert, err := yk.Attest(slot)
+// Attest attests a Yubikey slot by the Yubico root CA.
+func Attest(yk *piv.YubiKey, slot piv.Slot) (slotCert *x509.Certificate, err error) {
+	// Obtain the certificate of the key in the slot
+	slotCert, err = yk.Attest(slot)
 	if err != nil {
 		return nil, errors.Wrap(err, "attest key")
 	}
 
-	return cert.PublicKey, nil
+	// Obtain the attestation certificate of the YubiKey
+	ak, err := yk.AttestationCertificate()
+	if err != nil {
+		return nil, errors.Wrap(err, "get ak")
+	}
+	// Add the attestation certificate to the intermediates pool
+	intermedia := x509.NewCertPool()
+	intermedia.AddCert(ak)
+
+	// Set up the root and intermediates certificates pool
+	roots := x509.NewCertPool()
+	roots.AddCert(pivCA)
+
+	// Verify the certificate of the key against the root and intermediates certificate pool
+	if _, err = slotCert.Verify(x509.VerifyOptions{
+		Roots:         roots,
+		Intermediates: intermedia,
+	}); err != nil {
+		return nil, errors.Wrap(err, "slot cert cannot verify by piv root ca")
+	}
+
+	return slotCert, nil
 }
 
 // Decrypt decrypt by slot's private key
-func Decrypt(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) (plaintext []byte, err error) {
+func Decrypt(yk *piv.YubiKey,
+	pin string,
+	slot piv.Slot,
+	cipher []byte) (plaintext []byte, err error) {
 	cert, err := yk.Attest(slot)
 	if err != nil {
 		return nil, errors.Wrap(err, "attest key")
@@ -172,26 +184,34 @@ func Decrypt(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) (plainte
 	return plaintext, nil
 }
 
-// SignWithSHA256 sign by slot's private key
+// SignWithSHA256 signs the content using the private key present in the slot
+// described by YubiKey.
+// It returns the signature or an error in case of any failures.
 func SignWithSHA256(yk *piv.YubiKey,
 	pin string,
 	slot piv.Slot,
 	content io.Reader) (signature []byte, err error) {
+	// Get the Attestation Certificate for the key present in the slot.
+	// It can be used for verifying the public key or any other purposes
 	cert, err := yk.Attest(slot)
 	if err != nil {
-		return nil, errors.Wrap(err, "attest key")
+		return nil, errors.Wrap(err, "attest the key in the slot")
 	}
 
+	// Get the private key object for the key present in the slot.
+	// It can be used to sign data with the private key
 	priv, err := yk.PrivateKey(slot, cert.PublicKey, piv.KeyAuth{PIN: pin})
 	if err != nil {
-		return nil, errors.Wrap(err, "get prikey")
+		return nil, errors.Wrap(err, "get the private key for the slot")
 	}
 
+	// Compute the SHA-256 digest of the content
 	hasher := sha256.New()
 	if _, err = io.Copy(hasher, content); err != nil {
-		return nil, errors.Wrap(err, "read content")
+		return nil, errors.Wrap(err, "read the content")
 	}
 
+	// Sign the SHA-256 digest of the content with the private key
 	signer := priv.(crypto.Signer)
 	return signer.Sign(rand.Reader, hasher.Sum(nil), crypto.SHA256)
 }
