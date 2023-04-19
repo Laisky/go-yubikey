@@ -4,11 +4,10 @@ go 1.20
 
 require (
 	github.com/Laisky/errors v0.9.2
-	github.com/Laisky/go-utils/v4 v4.2.1-0.20230417022643-ed0506223005
+	github.com/Laisky/go-utils/v4 v4.2.1-0.20230419061503-7fa35393865a
 	github.com/Laisky/zap v1.19.3-0.20220902144311-ba5bb1d3eb31
 	github.com/go-piv/piv-go v1.11.0
 	github.com/stretchr/testify v1.8.2
-	golang.org/x/term v0.7.0
 )
 
 require (
@@ -33,6 +32,7 @@ require (
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/term v0.7.0 // indirect
 	golang.org/x/tools v0.8.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

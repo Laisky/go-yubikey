@@ -6,17 +6,14 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
-	"fmt"
 	"io"
 	"strings"
-	"syscall"
 
 	"github.com/Laisky/errors"
 	gcrypto "github.com/Laisky/go-utils/v4/crypto"
 	glog "github.com/Laisky/go-utils/v4/log"
 	"github.com/Laisky/zap"
 	"github.com/go-piv/piv-go/piv"
-	"golang.org/x/term"
 )
 
 var (
@@ -109,23 +106,6 @@ NEXT_CARD:
 	}
 
 	return cards, nil
-}
-
-// InputPassword reads password from stdin input
-// and returns it as a string.
-func InputPassword(hint string) (string, error) {
-	fmt.Printf("%s: ", hint)
-
-	// ReadPassword reads the password from the terminal
-	// with echo disabled which ensures the input is not
-	// displayed on the screen.
-	bytepw, err := term.ReadPassword(int(syscall.Stdin))
-	if err != nil {
-		return "", errors.Wrap(err, "read input password")
-	}
-
-	// Convert byte slice to string
-	return string(bytepw), nil
 }
 
 // Attest function attests the key in the slot by yubico Root CA,

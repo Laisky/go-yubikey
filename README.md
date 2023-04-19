@@ -25,10 +25,6 @@ func VerifyPIVCerts(certs []*x509.Certificate) error
 // properly closed after being used.
 func ListCards(skipInvalidCard bool) (cards []*piv.YubiKey, err error)
 
-// InputPassword reads password from stdin input
-// and returns it as a string.
-func InputPassword(hint string) (string, error)
-
 // Attest function attests the key in the slot by yubico Root CA,
 // and returns the certificate of the key.
 func Attest(yk *piv.YubiKey, slot piv.Slot) (slotCert *x509.Certificate, err error)
