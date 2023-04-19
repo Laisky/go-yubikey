@@ -29,8 +29,9 @@ func ListCards(skipInvalidCard bool) (cards []*piv.YubiKey, err error)
 // and returns it as a string.
 func InputPassword(hint string) (string, error)
 
-// Attest attests a Yubikey slot by the Yubico root CA.
-func Attest(yk *piv.YubiKey, slot piv.Slot) error
+// Attest function attests the key in the slot by yubico Root CA,
+// and returns the certificate of the key.
+func Attest(yk *piv.YubiKey, slot piv.Slot) (slotCert *x509.Certificate, err error)
 
 // Decrypt decrypt by slot's private key
 func Decrypt(yk *piv.YubiKey,

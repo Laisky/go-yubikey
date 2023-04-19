@@ -128,7 +128,8 @@ func InputPassword(hint string) (string, error) {
 	return string(bytepw), nil
 }
 
-// Attest attests a Yubikey slot by the Yubico root CA.
+// Attest function attests the key in the slot by yubico Root CA,
+// and returns the certificate of the key.
 func Attest(yk *piv.YubiKey, slot piv.Slot) (slotCert *x509.Certificate, err error) {
 	// Obtain the certificate of the key in the slot
 	slotCert, err = yk.Attest(slot)
