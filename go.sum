@@ -4,8 +4,8 @@ github.com/Laisky/errors/v2 v2.0.1 h1:yqCBrRzaP012AMB+7fVlXrP34OWRHrSO/hZ38CFdH8
 github.com/Laisky/errors/v2 v2.0.1/go.mod h1:mTn1LHSmKm4CYug0rpYO7rz13dp/DKrtzlSELSrxvT0=
 github.com/Laisky/go-chaining v0.0.0-20180507092046-43dcdc5a21be h1:7Rxhm6IjOtDAyj8eScOFntevwzkWhx94zi48lxo4m4w=
 github.com/Laisky/go-chaining v0.0.0-20180507092046-43dcdc5a21be/go.mod h1:1mdzaETo0kjvCQICPSePsoaatJN4l7JvEA1200lyevo=
-github.com/Laisky/go-utils/v4 v4.2.1-0.20230419061503-7fa35393865a h1:RIFAcNOutSwDyi67wS/BUt5fhdEdUBj1Py1wDouS4mg=
-github.com/Laisky/go-utils/v4 v4.2.1-0.20230419061503-7fa35393865a/go.mod h1:Lh1Tu1wP84LIrCzG9hlrwa5qEYkM56B8+fSOqf8UrJM=
+github.com/Laisky/go-utils/v4 v4.2.1-0.20230427093859-4be2d30964f0 h1:hm+ghHTgHey5peDNtDl+JvRClH2KVuNcYp1m6ch0cfE=
+github.com/Laisky/go-utils/v4 v4.2.1-0.20230427093859-4be2d30964f0/go.mod h1:Lh1Tu1wP84LIrCzG9hlrwa5qEYkM56B8+fSOqf8UrJM=
 github.com/Laisky/graphql v1.0.6 h1:NEULGxfxo+wbsW2OmqBXOMNUGgqo8uFjWNabwuNK10g=
 github.com/Laisky/graphql v1.0.6/go.mod h1:zaKVqXmMQTnTkFJ2AA53oyBWMzlGCnzr3aodKTrtOxI=
 github.com/Laisky/zap v1.19.3-0.20220902144311-ba5bb1d3eb31 h1:WE7Htc0l8PzfgGA9xI8HLg7ETy2Hm+W8hXaAZPpyk3Q=

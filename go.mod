@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/Laisky/errors v0.9.2
-	github.com/Laisky/go-utils/v4 v4.2.1-0.20230419061503-7fa35393865a
+	github.com/Laisky/go-utils/v4 v4.2.1-0.20230427093859-4be2d30964f0
 	github.com/Laisky/zap v1.19.3-0.20220902144311-ba5bb1d3eb31
 	github.com/go-piv/piv-go v1.11.0
 	github.com/stretchr/testify v1.8.2
