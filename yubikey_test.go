@@ -33,7 +33,24 @@ func TestAttest(t *testing.T) {
 	card := getCard(t)
 	defer card.Close()
 
-	_, err := Attest(card, piv.SlotAuthentication)
+	cert, err := Attest(card, piv.SlotAuthentication)
+	require.NoError(t, err)
+
+	t.Logf("cert: %s", string(gcrypto.Cert2Pem(cert)))
+	// t.Error()
+}
+
+func TestAttest2(t *testing.T) {
+	card := getCard(t)
+	defer card.Close()
+
+	certs, err := Attest2(card, piv.SlotAuthentication)
+	require.NoError(t, err)
+
+	t.Logf("certs: %s", string(gcrypto.Cert2Pem(certs...)))
+	// t.Error()
+
+	err = VerifyPIVCerts(certs)
 	require.NoError(t, err)
 }
 

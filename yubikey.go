@@ -110,6 +110,8 @@ NEXT_CARD:
 
 // Attest function attests the key in the slot by yubico Root CA,
 // and returns the certificate of the key.
+//
+// Deprecated: Use `Attest2` instead.
 func Attest(yk *piv.YubiKey, slot piv.Slot) (slotCert *x509.Certificate, err error) {
 	// Obtain the certificate of the key in the slot
 	slotCert, err = yk.Attest(slot)
@@ -139,6 +141,29 @@ func Attest(yk *piv.YubiKey, slot piv.Slot) (slotCert *x509.Certificate, err err
 	}
 
 	return slotCert, nil
+}
+
+// Attest2 get the certificate chain of the key in the slot,
+// all certificates in the chain are verified by yubico Root CA.
+func Attest2(yk *piv.YubiKey, slot piv.Slot) (certsChain []*x509.Certificate, err error) {
+	// Obtain the certificate of the key in the slot
+	slotCert, err := yk.Attest(slot)
+	if err != nil {
+		return nil, errors.Wrap(err, "attest key")
+	}
+
+	// Obtain the attestation certificate of the YubiKey
+	ak, err := yk.AttestationCertificate()
+	if err != nil {
+		return nil, errors.Wrap(err, "get ak")
+	}
+
+	certsChain = []*x509.Certificate{slotCert, ak}
+	if err = VerifyPIVCerts(certsChain); err != nil {
+		return nil, errors.Wrap(err, "verify piv certs")
+	}
+
+	return certsChain, nil
 }
 
 // Decrypt decrypt by slot's private key
