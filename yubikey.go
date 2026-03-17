@@ -49,6 +49,10 @@ func init() {
 
 // VerifyPIVCerts verify certs exported from yubikey PIV slots by Yubico PIV root ca
 func VerifyPIVCerts(certs []*x509.Certificate) error {
+	if len(certs) == 0 {
+		return errors.New("empty certificate chain")
+	}
+
 	root := x509.NewCertPool()
 	root.AddCert(pivCA)
 
