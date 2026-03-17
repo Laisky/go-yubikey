@@ -185,7 +185,10 @@ func Decrypt(yk *piv.YubiKey,
 		return nil, errors.Wrap(err, "get prikey")
 	}
 
-	deviceDecrypter := priv.(crypto.Decrypter)
+	deviceDecrypter, ok := priv.(crypto.Decrypter)
+	if !ok {
+		return nil, errors.New("private key does not implement crypto.Decrypter")
+	}
 	plaintext, err = deviceDecrypter.Decrypt(rand.Reader, cipher, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "decrypt by device prikey")
@@ -222,6 +225,9 @@ func SignWithSHA256(yk *piv.YubiKey,
 	}
 
 	// Sign the SHA-256 digest of the content with the private key
-	signer := priv.(crypto.Signer)
+	signer, ok := priv.(crypto.Signer)
+	if !ok {
+		return nil, errors.New("private key does not implement crypto.Signer")
+	}
 	return signer.Sign(rand.Reader, hasher.Sum(nil), crypto.SHA256)
 }
