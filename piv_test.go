@@ -10,6 +10,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestValidatePIN(t *testing.T) {
+	tests := []struct {
+		name    string
+		pin     string
+		wantErr bool
+	}{
+		{"valid 6 digits", "123456", false},
+		{"valid 8 digits", "12345678", false},
+		{"too short", "12345", true},
+		{"too long", "123456789", true},
+		{"empty", "", true},
+		{"non-digit", "12345a", true},
+		{"spaces", "123 56", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidatePIN(tt.pin)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestResetForPIV(t *testing.T) {
 	card := getCard(t)
 	defer card.Close()

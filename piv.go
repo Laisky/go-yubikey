@@ -9,8 +9,8 @@ import (
 )
 
 type resetForPIVOption struct {
-	slot            piv.Slot
-	requireTouch    bool
+	slot             piv.Slot
+	requireTouch     bool
 	managementKeyOut *[24]byte
 }
 
@@ -67,8 +67,25 @@ func WithManagementKeyOut(key *[24]byte) ResetForPIVOption {
 	}
 }
 
+// ValidatePIN checks that a PIN meets PIV requirements (6-8 digits).
+func ValidatePIN(pin string) error {
+	if len(pin) < 6 || len(pin) > 8 {
+		return errors.Errorf("PIN must be 6-8 characters, got %d", len(pin))
+	}
+	for _, c := range pin {
+		if c < '0' || c > '9' {
+			return errors.New("PIN must contain only digits")
+		}
+	}
+	return nil
+}
+
 // ResetForPIV will reset card and set PUK/PIN/PIV key
 func ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) (err error) {
+	if err = ValidatePIN(pin); err != nil {
+		return errors.Wrap(err, "invalid pin")
+	}
+
 	opt, err := new(resetForPIVOption).fillDefault().applyOpts(opts...)
 	if err != nil {
 		return errors.Wrap(err, "apply opts")
