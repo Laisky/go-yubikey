@@ -129,6 +129,13 @@ func ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) (err 
 	// Leaving the default management key is a security risk: anyone with physical
 	// access can perform administrative operations (generate keys, change certs).
 	var newMgmtKey [24]byte
+	defer func() {
+		// Zero sensitive key material from stack memory to prevent
+		// extraction via memory dumps, core dumps, or swap files.
+		for i := range newMgmtKey {
+			newMgmtKey[i] = 0
+		}
+	}()
 	if _, err = rand.Read(newMgmtKey[:]); err != nil {
 		return errors.Wrap(err, "generate random management key")
 	}
