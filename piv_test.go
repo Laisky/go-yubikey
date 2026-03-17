@@ -4,8 +4,8 @@ import (
 	"crypto/rsa"
 	"testing"
 
-	gutils "github.com/Laisky/go-utils/v4"
-	gcrypto "github.com/Laisky/go-utils/v4/crypto"
+	gutils "github.com/Laisky/go-utils/v6"
+	gcrypto "github.com/Laisky/go-utils/v6/crypto"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/stretchr/testify/require"
 )
@@ -15,8 +15,10 @@ func TestResetForPIV(t *testing.T) {
 	defer card.Close()
 
 	testPin := "123456"
-	err := ResetForPIV(card, testPin)
+	var mgmtKey [24]byte
+	err := ResetForPIV(card, testPin, WithManagementKeyOut(&mgmtKey))
 	require.NoError(t, err)
+	require.NotEqual(t, [24]byte{}, mgmtKey, "management key should be randomized")
 
 	cert, err := Attest(card, piv.SlotAuthentication)
 	require.NoError(t, err)

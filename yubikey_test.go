@@ -5,8 +5,8 @@ import (
 	"crypto/rsa"
 	"testing"
 
-	gutils "github.com/Laisky/go-utils/v4"
-	gcrypto "github.com/Laisky/go-utils/v4/crypto"
+	gutils "github.com/Laisky/go-utils/v6"
+	gcrypto "github.com/Laisky/go-utils/v6/crypto"
 	"github.com/go-piv/piv-go/piv"
 	"github.com/stretchr/testify/require"
 )
@@ -14,8 +14,12 @@ import (
 func getCard(t *testing.T) *piv.YubiKey {
 	// glog.Shared.ChangeLevel(glog.LevelDebug)
 	cards, err := ListCards(true)
-	require.NoError(t, err)
-	require.Greater(t, len(cards), 0)
+	if err != nil {
+		t.Skipf("skipping: no smart card reader available: %v", err)
+	}
+	if len(cards) == 0 {
+		t.Skip("skipping: no YubiKey found")
+	}
 	return cards[0]
 }
 

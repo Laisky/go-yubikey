@@ -9,9 +9,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/Laisky/errors"
-	gcrypto "github.com/Laisky/go-utils/v4/crypto"
-	glog "github.com/Laisky/go-utils/v4/log"
+	"github.com/Laisky/errors/v2"
+	gcrypto "github.com/Laisky/go-utils/v6/crypto"
+	glog "github.com/Laisky/go-utils/v6/log"
 	"github.com/Laisky/zap"
 	"github.com/go-piv/piv-go/piv"
 )

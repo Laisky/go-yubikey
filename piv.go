@@ -4,13 +4,14 @@ import (
 	"crypto/rand"
 	"math/big"
 
-	"github.com/Laisky/errors"
+	"github.com/Laisky/errors/v2"
 	"github.com/go-piv/piv-go/piv"
 )
 
 type resetForPIVOption struct {
-	slot         piv.Slot
-	requireTouch bool
+	slot            piv.Slot
+	requireTouch    bool
+	managementKeyOut *[24]byte
 }
 
 func (o *resetForPIVOption) fillDefault() *resetForPIVOption {
@@ -47,6 +48,21 @@ func WithSlot(slot piv.Slot) ResetForPIVOption {
 func WithRequireTouch() ResetForPIVOption {
 	return func(o *resetForPIVOption) error {
 		o.requireTouch = true
+		return nil
+	}
+}
+
+// WithManagementKeyOut provides a pointer to receive the randomly generated
+// management key. The management key is always randomized during ResetForPIV
+// to avoid leaving the well-known default key on the device. If you need to
+// perform future administrative operations (e.g., generating keys in other
+// slots), store this key securely.
+func WithManagementKeyOut(key *[24]byte) ResetForPIVOption {
+	return func(o *resetForPIVOption) error {
+		if key == nil {
+			return errors.New("management key output pointer must not be nil")
+		}
+		o.managementKeyOut = key
 		return nil
 	}
 }
@@ -92,13 +108,28 @@ func ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) (err 
 		return errors.Wrap(err, "gen key")
 	}
 
+	// Rotate the management key from the well-known default to a random value.
+	// Leaving the default management key is a security risk: anyone with physical
+	// access can perform administrative operations (generate keys, change certs).
+	var newMgmtKey [24]byte
+	if _, err = rand.Read(newMgmtKey[:]); err != nil {
+		return errors.Wrap(err, "generate random management key")
+	}
+	if err = card.SetManagementKey(piv.DefaultManagementKey, newMgmtKey); err != nil {
+		return errors.Wrap(err, "set management key")
+	}
+
+	if opt.managementKeyOut != nil {
+		*opt.managementKeyOut = newMgmtKey
+	}
+
 	return nil
 }
 
 // NewPUK will generate a random PUK
 func NewPUK() (string, error) {
 	ret := ""
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		puk, err := rand.Int(rand.Reader, big.NewInt(10))
 		if err != nil {
 			return "", errors.Wrap(err, "gen puk")
@@ -113,7 +144,7 @@ func NewPUK() (string, error) {
 // NewPIN will generate a random PIN
 func NewPIN() (string, error) {
 	ret := ""
-	for i := 0; i < 8; i++ {
+	for range 8 {
 		pin, err := rand.Int(rand.Reader, big.NewInt(10))
 		if err != nil {
 			return "", errors.Wrap(err, "gen pin")

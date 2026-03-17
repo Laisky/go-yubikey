@@ -1,49 +1,94 @@
 # go-yubikey
 
-Some utils wrap for <https://github.com/go-piv/piv-go>.
+[![Go Reference](https://pkg.go.dev/badge/github.com/Laisky/go-yubikey/v2.svg)](https://pkg.go.dev/github.com/Laisky/go-yubikey/v2)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-| Version | Supported Golang |
-| ------- | ---------------- |
-| v1      | 1.20+             |
+A Go library that provides high-level utilities for YubiKey PIV (Personal Identity Verification) operations, built on top of [go-piv/piv-go](https://github.com/go-piv/piv-go).
 
-[Installation](https://github.com/go-piv/piv-go/blob/1902689552e974ba88750e3ab71902d253172ead/README.md#installation)
+## Version Compatibility
 
-## New Features
+| Version | Go     |
+| ------- | ------ |
+| v1      | 1.20+  |
+| v2      | 1.25+  |
+
+## Prerequisites
+
+This library depends on `piv-go`, which requires a C compiler and system libraries for smart card access.
+
+- **macOS**: No additional dependencies (uses built-in smart card framework).
+- **Linux**: Install `libpcsclite-dev` (Debian/Ubuntu) or `pcsc-lite-devel` (Fedora/RHEL).
+- **Windows**: No additional dependencies (uses built-in WinSCard).
+
+See [piv-go Installation](https://github.com/go-piv/piv-go#installation) for details.
+
+## Installation
+
+```bash
+go get github.com/Laisky/go-yubikey/v2
+```
+
+## Quick Start
 
 ```go
-// VerifyPIVCerts verify certs exported from yubikey PIV slots by Yubico PIV root ca
-func VerifyPIVCerts(certs []*x509.Certificate) error
+package main
 
-// ListCards function lists all Yubikey plugin cards.
-//
-// Note that Yubikey does not allow concurrent access,
-// and attempting to do so will result in an error message
-// "connecting to smart card: the smart card cannot be accessed
-// because of other connections outstanding".
-//
-// Therefore, it is necessary to make sure that each card is
-// properly closed after being used.
-func ListCards(skipInvalidCard bool) (cards []*piv.YubiKey, err error)
+import (
+    "fmt"
+    "log"
 
-// Attest function attests the key in the slot by yubico Root CA,
-// and returns the certificate of the key.
-func Attest(yk *piv.YubiKey, slot piv.Slot) (slotCert *x509.Certificate, err error)
+    goyubikey "github.com/Laisky/go-yubikey/v2"
+    "github.com/go-piv/piv-go/piv"
+)
 
-// Decrypt decrypt by slot's private key
-func Decrypt(yk *piv.YubiKey,
-    pin string,
-    slot piv.Slot,
-    cipher []byte) (plaintext []byte, err error)
+func main() {
+    // List all connected YubiKeys
+    cards, err := goyubikey.ListCards(true)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer func() {
+        for _, c := range cards {
+            c.Close()
+        }
+    }()
 
-// SignWithSHA256 signs the content using the private key present in the slot
-// described by YubiKey.
-// It returns the signature or an error in case of any failures.
-func SignWithSHA256(yk *piv.YubiKey,
-    pin string,
-    slot piv.Slot,
-    content io.Reader) (signature []byte, err error)
+    fmt.Printf("Found %d YubiKey(s)\n", len(cards))
 
+    // Attest a key in the authentication slot
+    certs, err := goyubikey.Attest2(cards[0], piv.SlotAuthentication)
+    if err != nil {
+        log.Fatal(err)
+    }
 
-// ResetForPIV will reset card and set PUK/PIN/PIV key
-func ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) (err error)
+    fmt.Printf("Slot certificate subject: %s\n", certs[0].Subject)
+}
 ```
+
+## API Overview
+
+### Card Management
+
+- **`ListCards(skipInvalidCard bool) ([]*piv.YubiKey, error)`** — Discover and open all connected YubiKey devices. Set `skipInvalidCard` to `true` to silently skip inaccessible cards.
+
+- **`ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) error`** — Factory-reset a YubiKey and configure it for PIV: sets a random PUK, applies the given PIN, and generates an RSA 2048 key. Options: `WithSlot(slot)`, `WithRequireTouch()`.
+
+- **`NewPIN() (string, error)`** / **`NewPUK() (string, error)`** — Generate cryptographically random 8-digit PIN/PUK codes.
+
+### Attestation & Verification
+
+- **`Attest2(yk *piv.YubiKey, slot piv.Slot) ([]*x509.Certificate, error)`** — Attest a slot key and return a verified certificate chain (slot cert + attestation cert), validated against the Yubico PIV Root CA.
+
+- **`VerifyPIVCerts(certs []*x509.Certificate) error`** — Verify a certificate chain against the embedded Yubico PIV Root CA.
+
+### Cryptographic Operations
+
+- **`SignWithSHA256(yk *piv.YubiKey, pin string, slot piv.Slot, content io.Reader) ([]byte, error)`** — Compute a SHA-256 digest over `content` and sign it with the slot's private key.
+
+- **`Decrypt(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) ([]byte, error)`** — Decrypt ciphertext using the slot's private key.
+
+> **Note:** YubiKey does not support concurrent access. Ensure each `*piv.YubiKey` handle is closed after use to avoid `"other connections outstanding"` errors.
+
+## License
+
+[MIT](LICENSE)
