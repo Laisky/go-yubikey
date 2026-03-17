@@ -53,6 +53,10 @@ func WithRequireTouch() ResetForPIVOption {
 
 // ResetForPIV will reset card and set PUK/PIN/PIV key
 func ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) (err error) {
+	if len(pin) < 4 {
+		return errors.New("pin is too short")
+	}
+
 	opt, err := new(resetForPIVOption).fillDefault().applyOpts(opts...)
 	if err != nil {
 		return errors.Wrap(err, "apply opts")

@@ -49,6 +49,9 @@ func init() {
 
 // VerifyPIVCerts verify certs exported from yubikey PIV slots by Yubico PIV root ca
 func VerifyPIVCerts(certs []*x509.Certificate) error {
+	if len(certs) == 0 {
+		return errors.New("no certificates provided")
+	}
 	root := x509.NewCertPool()
 	root.AddCert(pivCA)
 
@@ -98,6 +101,9 @@ NEXT_CARD:
 					continue NEXT_CARD
 				}
 
+				for _, c := range cards {
+					_ = c.Close()
+				}
 				return nil, errors.Wrapf(err, "open yubikey %q", card)
 			}
 
