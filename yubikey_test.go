@@ -10,7 +10,7 @@ import (
 
 	gutils "github.com/Laisky/go-utils/v6"
 	gcrypto "github.com/Laisky/go-utils/v6/crypto"
-	"github.com/Laisky/piv-go/v2/piv"
+	"github.com/Laisky/piv-go/piv"
 	"github.com/stretchr/testify/require"
 )
 

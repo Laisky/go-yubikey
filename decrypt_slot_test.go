@@ -1,5 +1,5 @@
 package goyubikey
 
-import "github.com/Laisky/piv-go/v2/piv"
+import "github.com/Laisky/piv-go/piv"
 
 func zeroSlot() piv.Slot { return piv.Slot{} }

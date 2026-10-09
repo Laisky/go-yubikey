@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/Laisky/go-yubikey/v3.svg)](https://pkg.go.dev/github.com/Laisky/go-yubikey/v3)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A Go library that provides high-level utilities for YubiKey PIV (Personal Identity Verification) operations, built on the maintained [Laisky/piv-go v2 fork](https://github.com/Laisky/piv-go/pull/1).
+A Go library that provides high-level utilities for YubiKey PIV (Personal Identity Verification) operations, built on the maintained [Laisky/piv-go v1 security fork](https://github.com/Laisky/piv-go/pull/2).
 
 ## Version Compatibility
 
@@ -15,32 +15,45 @@ A Go library that provides high-level utilities for YubiKey PIV (Personal Identi
 
 ## v3 migration and fork qualification
 
-v3 is an intentional next-major release. The directly consumable fork is pinned
-to `github.com/Laisky/piv-go/v2 v2.0.0-20261009193015-894213b04ce4`
-(commit `894213b04ce40a4d3c9348a7297a41a3e0face8e`), based on the reviewed
-RSA fix at `bb5951c53fb1e4e77cf2f42ce4fdcc7119bd6478`. It is a direct dependency;
-applications need no `replace` directive. Upstream PR 195 is independent of
-this integration.
+v3 is an intentional next-major security contract. It directly pins
+`github.com/Laisky/piv-go v1.11.1-0.20261009201053-f7096021a5d6`
+(commit `f7096021a5d6e1aa3030233b76f43d3b07a0e3e9`), a backport to upstream
+v1.11.0 of the reviewed RSA fix at `bb5951c53fb1e4e77cf2f42ce4fdcc7119bd6478`.
+Applications need no `replace` directive; upstream PR 195 is independent.
 
 | Consumer change | v2 | v3 |
 | --- | --- | --- |
 | Library import | `github.com/Laisky/go-yubikey/v2` | `github.com/Laisky/go-yubikey/v3` |
-| PIV types/import | `github.com/go-piv/piv-go/piv` | `github.com/Laisky/piv-go/v2/piv` |
+| PIV types/import | `github.com/go-piv/piv-go/piv` | `github.com/Laisky/piv-go/piv` |
 | Decrypt contract | Legacy PKCS #1 v1.5, nil options | RSA-OAEP SHA-256, MGF1 SHA-256, empty label |
 | Ciphertext framing | Unspecified wrapper framing | Exactly one modulus-sized block, preserving leading zeros |
+| Management APIs | `[24]byte`, 3DES | `[24]byte`, 3DES preserved |
+| Device RSA sizes | 1024/2048 | 1024/2048 preserved |
 
-The concrete `piv.YubiKey` and `piv.Slot` types have changed package identity.
-Migrate caller PIV imports together with the library import; old and fork types
-are not interchangeable. Existing PKCS #1 v1.5 ciphertext must be re-encrypted
-from trusted original plaintext with the matching OAEP parameters. v3 never
-auto-detects or falls back to legacy decryption.
+The fork retains v1 management, signing, ECDH and non-RSA behavior rather than
+adopting the unrelated v2 API/firmware expansion. Only the RSA private-key
+factory arm, concrete decrypter and raw RSA response decoder change; the
+reviewed padding implementation and PSS/MGF helpers are unchanged.
 
-`ResetForPIV` continues to generate RSA-2048 and a 24-byte management key.
-`WithManagementKeyOut(*[24]byte)` retains its output shape. The v2 fork selects
-AES-192 for that management-key length on firmware 5.4 or newer, and 3DES on
-older firmware; administrative callers must use the matching fork behavior.
-No reset, key generation, PIN/PUK change or physical-token operation was performed
-to qualify this migration.
+The own-fork import path still changes concrete `piv.YubiKey` and `piv.Slot`
+type identity. Migrate caller PIV imports together with the library import.
+Keeping the old public concrete types would keep the old dependency handling
+the device; a library-local `replace` does not propagate to applications.
+Together with the intentional ciphertext change, this warrants v3 even though
+the dependency is a v1 backport. This is not a v2 patch.
+
+Existing PKCS #1 v1.5 ciphertext must be re-encrypted from trusted original
+plaintext with matching OAEP parameters. v3 never auto-detects or falls back.
+Callers that obtain `crypto.Decrypter` directly and pass nil options bypass
+this wrapper; those calls require their own explicit OAEP migration. Existing
+ECDH/ECIES callers must retain their protocol rather than pass ECIES envelopes
+to this RSA-only method.
+
+`ResetForPIV` still generates RSA-2048 and a 24-byte 3DES management key.
+`WithManagementKeyOut(*[24]byte)` retains its output shape. No AES management
+selection, larger RSA device algorithm, reset or provisioning change is added.
+The fork's Go floor is 1.20 for `rsa.OAEPOptions.MGFHash`; this library's existing
+Go 1.26 floor is unchanged.
 
 ### RSA-OAEP usage
 
@@ -64,8 +77,10 @@ acquisition. Any decryption error returns nil plaintext.
 ### Validation limits and hardware tests
 
 Software controls and regressions exercise the production wrapper's key-source
-boundary with real software RSA. The fork also retains its raw RSA/APDU boundary
-tests. These checks do not establish physical-card behavior, firmware support,
+boundary with real software RSA. A separate wrapper test invokes the actual
+fork decrypter but stops at a deliberately failing PIN callback. Fork tests
+invoke concrete keyRSA.Decrypt with software raw exponentiation, and the actual
+APDU response parser with a fake transmitter. These checks do not establish physical-card behavior, firmware support,
 PIN/touch handling, PC/SC chaining, device timing or FIPS acceptance.
 
 Hardware tests are disabled before card enumeration by default. Running read/use
@@ -100,7 +115,7 @@ import (
     "log"
 
     goyubikey "github.com/Laisky/go-yubikey/v3"
-    "github.com/Laisky/piv-go/v2/piv"
+    "github.com/Laisky/piv-go/piv"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/Laisky/errors/v2"
-	"github.com/Laisky/piv-go/v2/piv"
+	"github.com/Laisky/piv-go/piv"
 )
 
 type resetForPIVOption struct {
@@ -53,8 +53,8 @@ func WithRequireTouch() ResetForPIVOption {
 }
 
 // WithManagementKeyOut provides a pointer to receive the randomly generated
-// management key. The v2 fork uses AES-192 for this 24-byte key on firmware
-// 5.4 or newer and 3DES on older firmware. The key is randomized during ResetForPIV
+// management key. The v1 security fork retains the 24-byte 3DES management
+// key API and behavior. The key is randomized during ResetForPIV
 // to avoid leaving the well-known default key on the device. If you need to
 // perform future administrative operations (e.g., generating keys in other
 // slots), store this key securely.
@@ -140,7 +140,7 @@ func ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) (err 
 	if _, err = rand.Read(newMgmtKey[:]); err != nil {
 		return errors.Wrap(err, "generate random management key")
 	}
-	if err = card.SetManagementKey(piv.DefaultManagementKey, newMgmtKey[:]); err != nil {
+	if err = card.SetManagementKey(piv.DefaultManagementKey, newMgmtKey); err != nil {
 		return errors.Wrap(err, "set management key")
 	}
 

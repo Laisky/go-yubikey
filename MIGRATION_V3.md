@@ -1,18 +1,26 @@
 # v3 release impact
 
-This change must be released as v3, not as a v2 patch. No release tag is created
-by this PR.
+Use the narrow v1-based PIV security fork. This change must still be released as
+v3, not a v2 patch: the own-fork concrete public types and OAEP ciphertext
+contract are intentional compatibility changes. No tag is created by this PR.
 
-- Import github.com/Laisky/go-yubikey/v3 and github.com/Laisky/piv-go/v2/piv.
-  Exported concrete PIV types now come from the fork.
-- Decrypt accepts only one RSA-OAEP SHA-256/MGF1 SHA-256/empty-label block.
-  Existing PKCS #1 v1.5 ciphertext and chunked helper output are incompatible.
-- WithManagementKeyOut still accepts *[24]byte. On firmware >=5.4 the fork selects
-  AES-192 for this size; older firmware uses 3DES.
-- The fork revision is directly pinned, so no application replace is needed.
-  Upstream PR195 does not block use of the published fork commit.
-- Physical-device/PIN/touch/firmware acceptance remains a separate outstanding
-  validation. Default tests do not enumerate or modify devices.
+- Import github.com/Laisky/go-yubikey/v3 and github.com/Laisky/piv-go/piv together.
+  Old upstream YubiKey/Slot types are not interchangeable with fork types.
+- Decrypt accepts one RSA-1024/2048 OAEP SHA-256/MGF1 SHA-256/empty-label block.
+  Existing PKCS #1 v1.5 and chunked ciphertext must be migrated from trusted
+  original plaintext. No legacy fallback is enabled.
+- v1 management APIs and 3DES behavior are preserved, including
+  WithManagementKeyOut(*[24]byte). No AES or larger device-RSA expansion is added.
+- The fork directly pins the reviewed decoder; no application replace is needed.
+  Fork Go floor is 1.20; go-yubikey's existing Go 1.26 floor is unchanged.
+- Direct crypto.Decrypter callers bypass the wrapper and must migrate their own
+  nil options. Keep ECDH/ECIES protocols in their existing non-RSA paths.
+- Consumer inventory is incomplete; source review and compile controls do not
+  establish complete application acceptance.
 
-Merge/release review must account for caller import changes, ciphertext migration,
-management-tool algorithm expectations and physical-device qualification.
+Physical acceptance remains outstanding: positive OAEP controls through the
+exported wrapper with existing approved RSA keys; full modulus-sized APDU/PCSC
+results including leading zeros; PIN/touch policy, cancellation/retry behavior
+and signing/attestation compatibility on supported firmware. Keep malformed or
+legacy oracle negatives in software/APDU tests. No reset, key generation,
+management/PIN/PUK changes, production probing or FIPS acceptance is performed.

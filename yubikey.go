@@ -14,7 +14,7 @@ import (
 	"github.com/Laisky/errors/v2"
 	gcrypto "github.com/Laisky/go-utils/v6/crypto"
 	glog "github.com/Laisky/go-utils/v6/log"
-	"github.com/Laisky/piv-go/v2/piv"
+	"github.com/Laisky/piv-go/piv"
 	"github.com/Laisky/zap"
 )
 
@@ -175,7 +175,8 @@ func Attest2(yk *piv.YubiKey, slot piv.Slot) (certsChain []*x509.Certificate, er
 // Decrypt decrypts one RSA-OAEP ciphertext with SHA-256, MGF1 SHA-256 and
 // an empty label using the slot's RSA private key. Ciphertext must contain
 // exactly one modulus-sized block; plaintext capacity is modulus size minus
-// 66 bytes. PKCS #1 v1.5, concatenated blocks and non-RSA keys are rejected.
+// 66 bytes. The v1 fork supports RSA-1024/2048. PKCS #1 v1.5,
+// concatenated blocks and other algorithms are rejected.
 // On any failure, no plaintext is returned.
 //
 // This contract intentionally replaces the v2 legacy decryption behavior;
@@ -220,7 +221,7 @@ func decryptFromKeySource(source decryptionKeySource, cipher []byte) ([]byte, er
 		return nil, rsa.ErrDecryption
 	}
 	switch pub.N.BitLen() {
-	case 1024, 2048, 3072, 4096:
+	case 1024, 2048:
 	default:
 		return nil, rsa.ErrDecryption
 	}

@@ -143,7 +143,7 @@ func TestDecryptOAEPRegression(t *testing.T) {
 }
 
 func TestDecryptOAEPRoundTrips(t *testing.T) {
-	for _, bits := range []int{1024, 2048, 3072, 4096} {
+	for _, bits := range []int{1024, 2048} {
 		t.Run(fmt.Sprintf("RSA%d", bits), func(t *testing.T) {
 			priv := newRSAControl(t, bits)
 			for _, size := range []int{0, 16, priv.Size() - 2*sha256.Size - 2} {
@@ -215,6 +215,8 @@ func TestDecryptPreflight(t *testing.T) {
 		{"negative modulus", &rsa.PublicKey{N: new(big.Int).Neg(priv.N), E: 65537}, ciphertext},
 		{"bad exponent", &rsa.PublicKey{N: priv.N, E: 1}, ciphertext},
 		{"unsupported key size", &rsa.PublicKey{N: new(big.Int).Lsh(big.NewInt(1), 511), E: 65537}, make([]byte, 64)},
+		{"RSA3072 unsupported by v1", &rsa.PublicKey{N: new(big.Int).Lsh(big.NewInt(1), 3071), E: 65537}, make([]byte, 384)},
+		{"RSA4096 unsupported by v1", &rsa.PublicKey{N: new(big.Int).Lsh(big.NewInt(1), 4095), E: 65537}, make([]byte, 512)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
