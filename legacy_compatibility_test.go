@@ -146,10 +146,23 @@ func TestExplicitEncryptOAEPAndPublicDecrypt(t *testing.T) {
 			if err != nil || !bytes.Equal(got, plain) {
 				t.Fatalf("new API roundtrip %x/%v", got, err)
 			}
-			legacy, err := Decrypt(&piv.YubiKey{}, "unused", piv.SlotKeyManagement, cipher)
-			if err == nil || legacy != nil {
-				t.Fatalf("legacy API silently selected OAEP: %x/%v", legacy, err)
+			// RSA padding encodings are not self-identifying: a random OAEP
+			// block can also satisfy PKCS checks. Verify explicit selection
+			// against the PKCS control instead of inferring format from failure.
+			control, controlErr := priv.Decrypt(rand.Reader, cipher, nil)
+			calls := 0
+			source.private = testDecrypter{public: &priv.PublicKey, decrypt: func(r io.Reader, c []byte, o crypto.DecrypterOpts) ([]byte, error) {
+				calls++
+				if o != nil {
+					t.Fatalf("legacy operation changed padding: %#v", o)
+				}
+				return priv.Decrypt(r, c, o)
+			}}
+			legacy, legacyErr := Decrypt(&piv.YubiKey{}, "unused", piv.SlotKeyManagement, cipher)
+			if calls != 1 || (controlErr == nil) != (legacyErr == nil) || !bytes.Equal(legacy, control) {
+				t.Fatalf("legacy dispatch differs from PKCS control: %x/%v vs %x/%v calls%d", legacy, legacyErr, control, controlErr, calls)
 			}
+			source.private = testOAEPPrivateKey{priv}
 		}
 		cipher, err := EncryptOAEP(&priv.PublicKey, make([]byte, priv.Size()-65))
 		if !errors.Is(err, rsa.ErrMessageTooLong) || cipher != nil {
