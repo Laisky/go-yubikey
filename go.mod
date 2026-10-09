@@ -39,3 +39,6 @@ require (
 	golang.org/x/term v0.46.0 // indirect
 	golang.org/x/tools v0.1.5 // indirect
 )
+
+// Applications must copy this replacement; dependency replacements do not propagate.
+replace github.com/go-piv/piv-go => github.com/Laisky/piv-go v1.11.1-0.20261009203706-c682bc1db34c

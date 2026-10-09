@@ -65,6 +65,21 @@ func main() {
 }
 ```
 
+## Compatible RSA decryption and new OAEP APIs
+
+Existing v2 imports and exported PIV types remain unchanged. Existing `Decrypt` continues to select legacy PKCS #1 v1.5, so upgrading does not require reencryption of valid historical single-block data. `DecryptLegacy` gives the same operation an explicit migration name. Both are deprecated: arbitrary-message PKCS #1 v1.5 decryption retains padding-oracle risk and belongs only in a restricted, trusted migration workflow.
+
+For new data, use `EncryptOAEP` and `DecryptOAEP` explicitly. These use one RSA-1024/2048 block, SHA-256, MGF1 SHA-256 and an empty label; plaintext capacity is modulus size minus 66 bytes. They never try another padding algorithm on failure.
+
+The application must explicitly select the reviewed compatibility fork in its root `go.mod` to enable `DecryptOAEP`. In that application's root directory, run:
+
+    go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261009203706-c682bc1db34c
+    go mod tidy
+
+Dependency replacements do not propagate. With the original upstream dependency, the library still compiles and legacy calls remain available, while `DecryptOAEP` returns `ErrOAEPUnsupported` before decryption because that implementation ignores OAEP options. Public PIV package imports remain `github.com/go-piv/piv-go/piv`.
+
+See [COMPATIBILITY.md](COMPATIBILITY.md) for the version-selection and migration contract, supported historical fixtures, and limits.
+
 ## API Overview
 
 ### Card Management
@@ -85,7 +100,11 @@ func main() {
 
 - **`SignWithSHA256(yk *piv.YubiKey, pin string, slot piv.Slot, content io.Reader) ([]byte, error)`** — Compute a SHA-256 digest over `content` and sign it with the slot's private key.
 
-- **`Decrypt(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) ([]byte, error)`** — Decrypt ciphertext using the slot's private key.
+- **`Decrypt(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) ([]byte, error)`** — Preserve legacy PKCS #1 v1.5 decryption for historical data (deprecated).
+
+- **`EncryptOAEP(pub *rsa.PublicKey, plaintext []byte) ([]byte, error)`** — Explicit single-block OAEP encryption for new data.
+- **`DecryptOAEP(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) ([]byte, error)`** — Explicit OAEP decryption; requires the reviewed fork.
+- **`DecryptLegacy(...)`** — Explicit name for the unchanged legacy operation (deprecated).
 
 > **Note:** YubiKey does not support concurrent access. Ensure each `*piv.YubiKey` handle is closed after use to avoid `"other connections outstanding"` errors.
 

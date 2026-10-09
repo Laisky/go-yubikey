@@ -170,17 +170,39 @@ func Attest2(yk *piv.YubiKey, slot piv.Slot) (certsChain []*x509.Certificate, er
 	return certsChain, nil
 }
 
-// Decrypt decrypt by slot's private key
-func Decrypt(yk *piv.YubiKey,
-	pin string,
-	slot piv.Slot,
-	cipher []byte) (plaintext []byte, err error) {
-	cert, err := yk.Attest(slot)
+// Decrypt preserves the v2 legacy decryption contract for existing ciphertext.
+// For RSA keys it selects PKCS #1 v1.5 and never attempts OAEP.
+//
+// Deprecated: Arbitrary-message PKCS #1 v1.5 decryption can expose a padding
+// oracle. Use only with trusted historical data in a restricted migration
+// workflow. Use EncryptOAEP and DecryptOAEP for new data. Preserving this API
+// does not eliminate its legacy protocol risk.
+func Decrypt(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) ([]byte, error) {
+	if yk == nil {
+		return nil, errors.New("YubiKey must not be nil")
+	}
+	return decryptLegacyFromKeySource(newDecryptionKeySource(yk, pin, slot), cipher)
+}
+
+// DecryptLegacy explicitly selects the same legacy contract as Decrypt.
+// It does not try OAEP and is provided for controlled historical-data migration.
+//
+// Deprecated: PKCS #1 v1.5 arbitrary-message decryption retains padding-oracle
+// risk. Do not expose this operation to untrusted ciphertext or observers.
+func DecryptLegacy(yk *piv.YubiKey, pin string, slot piv.Slot, cipher []byte) ([]byte, error) {
+	if yk == nil {
+		return nil, errors.New("YubiKey must not be nil")
+	}
+	return decryptLegacyFromKeySource(newDecryptionKeySource(yk, pin, slot), cipher)
+}
+
+func decryptLegacyFromKeySource(source decryptionKeySource, cipher []byte) (plaintext []byte, err error) {
+	cert, err := source.attest()
 	if err != nil {
 		return nil, errors.Wrap(err, "attest key")
 	}
 
-	priv, err := yk.PrivateKey(slot, cert.PublicKey, piv.KeyAuth{PIN: pin})
+	priv, err := source.privateKey(cert.PublicKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "get prikey")
 	}
