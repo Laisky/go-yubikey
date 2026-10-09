@@ -1,12 +1,14 @@
 package goyubikey
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
+	"os"
 	"testing"
 
 	gutils "github.com/Laisky/go-utils/v6"
-	gcrypto "github.com/Laisky/go-utils/v6/crypto"
-	"github.com/go-piv/piv-go/piv"
+	"github.com/Laisky/piv-go/v2/piv"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,6 +39,9 @@ func TestValidatePIN(t *testing.T) {
 }
 
 func TestResetForPIV(t *testing.T) {
+	if os.Getenv("GO_YUBIKEY_DESTRUCTIVE_TESTS") != "1" {
+		t.Skip("destructive reset test disabled; requires separate GO_YUBIKEY_DESTRUCTIVE_TESTS=1 opt-in")
+	}
 	card := getCard(t)
 	defer card.Close()
 
@@ -56,7 +61,7 @@ func TestResetForPIV(t *testing.T) {
 
 	t.Run("decrypt", func(t *testing.T) {
 		plain := gutils.RandomStringWithLength(10)
-		cipher, err := gcrypto.RSAEncrypt(cert.PublicKey.(*rsa.PublicKey), []byte(plain))
+		cipher, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, cert.PublicKey.(*rsa.PublicKey), []byte(plain), nil)
 		require.NoError(t, err)
 
 		plainGot, err := Decrypt(card, testPin, piv.SlotAuthentication, cipher)

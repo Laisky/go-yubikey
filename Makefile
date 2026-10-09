@@ -6,7 +6,7 @@ install:
 
 .PHONY: lint
 lint:
-	goimports -local github.com/Laisky/go-yubikey/v2 -w .
+	goimports -local github.com/Laisky/go-yubikey/v3 -w .
 	go mod tidy
 	gofmt -s -w .
 	golangci-lint run

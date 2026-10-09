@@ -1,12 +1,12 @@
-module github.com/Laisky/go-yubikey/v2
+module github.com/Laisky/go-yubikey/v3
 
 go 1.26.0
 
 require (
 	github.com/Laisky/errors/v2 v2.0.1
 	github.com/Laisky/go-utils/v6 v6.3.2-0.20261008165128-506ec9758d5f
+	github.com/Laisky/piv-go/v2 v2.0.0-20261009193015-894213b04ce4
 	github.com/Laisky/zap v1.27.1-0.20261006114731-55f41c2b5061
-	github.com/go-piv/piv-go v1.11.0
 	github.com/stretchr/testify v1.12.1
 )
 
