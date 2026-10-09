@@ -14,7 +14,11 @@ import (
 
 // ErrOAEPUnsupported means the selected PIV implementation cannot be trusted
 // to honor RSA-OAEP options. No decryption or fallback is performed.
-var ErrOAEPUnsupported = errors.New("RSA-OAEP requires the reviewed PIV fork; configure the application's go.mod replacement")
+var ErrOAEPUnsupported = errors.New(
+	"RSA-OAEP unavailable: in the application's root module run " +
+		"go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261009203706-c682bc1db34c" +
+		", then go mod tidy; see COMPATIBILITY.md",
+)
 
 // EncryptOAEP encrypts exactly one RSA block using SHA-256, MGF1 SHA-256,
 // and an empty label. Its output must be passed explicitly to DecryptOAEP.

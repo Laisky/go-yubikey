@@ -40,7 +40,7 @@ func TestDecryptConcretePIVBoundary(t *testing.T) {
 		if !errors.Is(err, ErrOAEPUnsupported) || plain != nil || prompts != 0 || source.privateCalls != 1 {
 			t.Fatalf("unmodified upstream reached PIN/decrypt: %x/%v prompts%d/private%d", plain, err, prompts, source.privateCalls)
 		}
-		t.Log("actual unmodified upstream rejected before its PIN callback/decryption")
+		t.Logf("actual unmodified upstream rejected before its PIN callback/decryption: %v", err)
 		return
 	}
 	t.Log("actual reviewed fork selected; valid input stopped at test-only PIN callback")

@@ -14,11 +14,34 @@ The actual historical encryptor returns raw RSA bytes with no version or algorit
 
 The application's root `go.mod` must explicitly select the compatibility fork:
 
-    replace github.com/go-piv/piv-go => github.com/Laisky/piv-go <pinned-version>
+    replace github.com/go-piv/piv-go => github.com/Laisky/piv-go v1.11.1-0.20261009203706-c682bc1db34c
+
+For an existing application that already imports the upgraded v2 library, this is the only new module directive required for OAEP decryption. From the directory containing that application's `go.mod`, run:
+
+    go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261009203706-c682bc1db34c
+    go mod tidy
+
+Keep imports as `github.com/go-piv/piv-go/piv`. The wrapper already requires upstream `v1.11.0`; the root replacement supplies the reviewed fork's source for that requirement. Do not add a second own-namespace PIV import. This replacement is not required for `EncryptOAEP`, which uses standard public-key encryption, or for continuing to decrypt existing legacy data.
 
 Use the exact reviewed version from this repository's `go.mod`. The fork declares the original module namespace and keeps original internal imports, preserving public type identity and selecting a single PIV implementation. A dependency's replacement does not propagate to an application. Without the replacement, old APIs build and behave as before; `DecryptOAEP` fails closed with `ErrOAEPUnsupported` before private decryption, rather than trusting ignored options. Its capability check is structural and depends on the concrete reviewed RSA implementation, not a guessed version or trial decryption.
 
 For an application-created versioned record, select the operation from a trusted algorithm/version field: historical PKCS #1 v1.5 records use `DecryptLegacy`; new OAEP-SHA256 records use `DecryptOAEP`. Never change an existing unversioned record's meaning, and never choose a second algorithm after a decoding failure. This patch does not invent a new on-disk envelope or alter the user's unseen dataset.
+
+## Why the library cannot select this fork transparently
+
+Go applies replacements from the application's main module (or explicit workspace), and ignores replacements in dependency modules. A library's vendored copy is also ignored by module-mode consumers. See the [Go module reference](https://go.dev/ref/mod#go-mod-file-replace) and its [vendoring rules](https://go.dev/ref/mod#vendoring).
+
+The old exported card type is `github.com/go-piv/piv-go/piv.YubiKey`. Requiring the fork under a distinct import path would create distinct named card types and would not change the implementation behind an existing upstream card handle. The original backend does not expose a supported raw-RSA decryption API that lets this wrapper safely repair its ignored options. The current additive APIs therefore preserve original card handles and require an explicit application-level backend selection only for OAEP decryption.
+
+| Alternative | Original public PIV types | Integration cost |
+| --- | --- | --- |
+| Pinned application-root replacement (this proposal) | Preserved | One root directive per application enabling new OAEP decryption; no change for existing legacy callers. |
+| Explicit workspace replacement | Preserved | One workspace configuration shared by its applications; isolated/non-workspace builds still need their own selection. |
+| Application-level reviewed vendoring | Preserved | Each application must explicitly maintain the patched source and vendor metadata; library vendoring alone cannot propagate it. |
+| Reviewed upstream v1 backport/release | Preserved | After upstream publishes and acceptance proves the required options, the library can require that canonical version with no fork replacement. It is not currently delivered by this PR. |
+| Separate fork-backed opt-in API or subpackage | Existing legacy types preserved | The library could require an own-namespace fork directly for new APIs, but callers must open/use its distinct card handles. Existing upstream handles cannot transparently become fork handles; both dependencies coexist. This is a possible separate design, not implemented here. |
+
+Existing legacy consumers have zero required configuration changes for continued decryption. New `DecryptOAEP` callers selecting the unqualified original implementation receive `ErrOAEPUnsupported` with the exact root-module command before PIN/private decryption; no fallback occurs. The current proposal deliberately does not pretend that its own development replacement enables downstream applications automatically.
 
 ## Retained legacy risk and testing limits
 

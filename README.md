@@ -71,7 +71,12 @@ Existing v2 imports and exported PIV types remain unchanged. Existing `Decrypt` 
 
 For new data, use `EncryptOAEP` and `DecryptOAEP` explicitly. These use one RSA-1024/2048 block, SHA-256, MGF1 SHA-256 and an empty label; plaintext capacity is modulus size minus 66 bytes. They never try another padding algorithm on failure.
 
-The application must explicitly select the reviewed compatibility fork in its root `go.mod` to enable `DecryptOAEP`. Copy the pinned replacement from this repository's `go.mod`. Dependency replacements do not propagate. With the original upstream dependency, the library still compiles and legacy calls remain available, while `DecryptOAEP` returns `ErrOAEPUnsupported` before decryption because that implementation ignores OAEP options. Public PIV package imports remain `github.com/go-piv/piv-go/piv`.
+The application must explicitly select the reviewed compatibility fork in its root `go.mod` to enable `DecryptOAEP`. In that application's root directory, run:
+
+    go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261009203706-c682bc1db34c
+    go mod tidy
+
+Dependency replacements do not propagate. With the original upstream dependency, the library still compiles and legacy calls remain available, while `DecryptOAEP` returns `ErrOAEPUnsupported` before decryption because that implementation ignores OAEP options. Public PIV package imports remain `github.com/go-piv/piv-go/piv`.
 
 See [COMPATIBILITY.md](COMPATIBILITY.md) for the version-selection and migration contract, supported historical fixtures, and limits.
 
