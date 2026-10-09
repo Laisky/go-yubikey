@@ -2,7 +2,9 @@ package goyubikey
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/rsa"
+	"os"
 	"testing"
 
 	gutils "github.com/Laisky/go-utils/v6"
@@ -12,6 +14,10 @@ import (
 )
 
 func getCard(t *testing.T) *piv.YubiKey {
+	t.Helper()
+	if os.Getenv("GO_YUBIKEY_HARDWARE_TESTS") != "1" {
+		t.Skip("hardware tests disabled; set GO_YUBIKEY_HARDWARE_TESTS=1 for an explicitly approved test token")
+	}
 	// glog.Shared.ChangeLevel(glog.LevelDebug)
 	cards, err := ListCards(true)
 	if err != nil {
@@ -69,7 +75,8 @@ func TestDecrypt(t *testing.T) {
 	require.NoError(t, err)
 	pubkey := cert.PublicKey
 
-	cipher, err := gcrypto.RSAEncrypt(pubkey.(*rsa.PublicKey), []byte(plaintext))
+	//nolint:staticcheck // Explicit compatibility control for deprecated legacy ciphertext.
+	cipher, err := rsa.EncryptPKCS1v15(rand.Reader, pubkey.(*rsa.PublicKey), []byte(plaintext))
 	require.NoError(t, err)
 
 	gotplain, err := Decrypt(card, pin, piv.SlotAuthentication, cipher)
