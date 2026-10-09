@@ -16,8 +16,8 @@ A Go library that provides high-level utilities for YubiKey PIV (Personal Identi
 ## v3 migration and fork qualification
 
 v3 is an intentional next-major security contract. It directly pins
-`github.com/Laisky/piv-go v1.11.1-0.20261009201053-f7096021a5d6`
-(commit `f7096021a5d6e1aa3030233b76f43d3b07a0e3e9`), a backport to upstream
+`github.com/Laisky/piv-go v1.11.1-0.20261009201511-eb88aefa2533`
+(commit `eb88aefa253349a4700dd449f082854ddf45f65d`), a backport to upstream
 v1.11.0 of the reviewed RSA fix at `bb5951c53fb1e4e77cf2f42ce4fdcc7119bd6478`.
 Applications need no `replace` directive; upstream PR 195 is independent.
 

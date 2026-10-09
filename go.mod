@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/Laisky/errors/v2 v2.0.1
 	github.com/Laisky/go-utils/v6 v6.3.2-0.20261008165128-506ec9758d5f
-	github.com/Laisky/piv-go v1.11.1-0.20261009201053-f7096021a5d6
+	github.com/Laisky/piv-go v1.11.1-0.20261009201511-eb88aefa2533
 	github.com/Laisky/zap v1.27.1-0.20261006114731-55f41c2b5061
 	github.com/stretchr/testify v1.12.1
 )
