@@ -88,28 +88,51 @@ func ListCards(skipInvalidCard bool) (cards []*piv.YubiKey, err error) {
 		return nil, errors.Wrap(err, "list all smart cards")
 	}
 
-	// Iterate through all smart cards.
-NEXT_CARD:
+	return openYubiKeyCards(allCards, piv.Open, skipInvalidCard)
+}
+
+// openYubiKeyCards opens every card in allCards whose name identifies a YubiKey
+// by calling open. Cards that fail to open are skipped when skipInvalidCard is
+// true. Otherwise every card opened so far is closed before the open error is
+// returned, because a YubiKey refuses concurrent connections and a leaked
+// handle would block later callers. It returns the opened cards, which the
+// caller must close, or an error.
+func openYubiKeyCards[T io.Closer](allCards []string,
+	open func(string) (T, error), skipInvalidCard bool) ([]T, error) {
+	var cards []T
 	for _, card := range allCards {
 		// Make sure that the smart card is a YubiKey plugin card.
-		if strings.Contains(strings.ToLower(card), "yubikey") {
-			// Open the card.
-			c, err := piv.Open(card)
-			if err != nil {
-				glog.Shared.Debug("card is invalid", zap.Error(err))
-				// If `skipInvalidCard` is true, skip this smart card and move on to the next one.
-				if skipInvalidCard {
-					continue NEXT_CARD
-				}
+		if !strings.Contains(strings.ToLower(card), "yubikey") {
+			continue
+		}
 
-				return nil, errors.Wrapf(err, "open yubikey %q", card)
+		c, err := open(card)
+		if err != nil {
+			glog.Shared.Debug("card is invalid", zap.String("card", card), zap.Error(err))
+			// If `skipInvalidCard` is true, skip this smart card and move on to the next one.
+			if skipInvalidCard {
+				continue
 			}
 
-			cards = append(cards, c)
+			closeOpenedCards(cards)
+			return nil, errors.Wrapf(err, "open yubikey %q", card)
 		}
+
+		cards = append(cards, c)
 	}
 
 	return cards, nil
+}
+
+// closeOpenedCards closes every card in cards. It runs on an error path whose
+// open error is what the caller receives, so close failures are logged instead
+// of returned.
+func closeOpenedCards[T io.Closer](cards []T) {
+	for _, c := range cards {
+		if err := c.Close(); err != nil {
+			glog.Shared.Warn("close yubikey after another card failed to open", zap.Error(err))
+		}
+	}
 }
 
 // Attest function attests the key in the slot by yubico Root CA,
