@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
+	"io"
 	"os"
 	"testing"
 
@@ -25,6 +26,19 @@ func getCard(t *testing.T) *piv.YubiKey {
 	}
 	if len(cards) == 0 {
 		t.Skip("skipping: no YubiKey found")
+	}
+	return keepFirstCard(t, cards)
+}
+
+// keepFirstCard returns the first card for the test to close and closes the
+// rest. ListCards opens every attached YubiKey, and an unused handle would
+// keep its exclusive connection open for later tests.
+func keepFirstCard[T io.Closer](t *testing.T, cards []T) T {
+	t.Helper()
+	for _, c := range cards[1:] {
+		if err := c.Close(); err != nil {
+			t.Errorf("close unused yubikey: %v", err)
+		}
 	}
 	return cards[0]
 }
