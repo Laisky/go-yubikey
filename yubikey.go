@@ -80,8 +80,10 @@ func VerifyPIVCerts(certs []*x509.Certificate) error {
 // because of other connections outstanding".
 //
 // Therefore, it is necessary to make sure that each card is
-// properly closed after being used.
-func ListCards(skipInvalidCard bool) (cards []*piv.YubiKey, err error) {
+// properly closed after being used. When skipInvalidCard is false and a
+// card fails to open, ListCards closes the cards it already opened and
+// returns only the error.
+func ListCards(skipInvalidCard bool) ([]*piv.YubiKey, error) {
 	// Get all available smart cards.
 	allCards, err := piv.Cards()
 	if err != nil {

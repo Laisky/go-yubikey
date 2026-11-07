@@ -52,6 +52,9 @@ func main() {
             c.Close()
         }
     }()
+    if len(cards) == 0 {
+        log.Fatal("no YubiKey found")
+    }
 
     fmt.Printf("Found %d YubiKey(s)\n", len(cards))
 
@@ -84,7 +87,7 @@ See [COMPATIBILITY.md](COMPATIBILITY.md) for the version-selection and migration
 
 ### Card Management
 
-- **`ListCards(skipInvalidCard bool) ([]*piv.YubiKey, error)`** — Discover and open all connected YubiKey devices. Set `skipInvalidCard` to `true` to silently skip inaccessible cards.
+- **`ListCards(skipInvalidCard bool) ([]*piv.YubiKey, error)`** — Discover and open all connected YubiKey devices. Set `skipInvalidCard` to `true` to silently skip inaccessible cards. With `false`, the first card that fails to open makes `ListCards` close the cards it already opened and return the error. Close every returned card when done; a YubiKey accepts only one connection at a time.
 
 - **`ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) error`** — Factory-reset a YubiKey and configure it for PIV: sets a random PUK, applies the given PIN, and generates an RSA 2048 key. Options: `WithSlot(slot)`, `WithRequireTouch()`.
 
