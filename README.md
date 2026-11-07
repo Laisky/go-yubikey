@@ -10,7 +10,7 @@ A Go library that provides high-level utilities for YubiKey PIV (Personal Identi
 | Version | Go     |
 | ------- | ------ |
 | v1      | 1.20+  |
-| v2      | 1.25+  |
+| v2      | 1.26+  |
 
 ## Prerequisites
 
