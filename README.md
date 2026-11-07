@@ -76,7 +76,7 @@ For new data, use `EncryptOAEP` and `DecryptOAEP` explicitly. These use one RSA-
 
 The application must explicitly select the reviewed compatibility fork in its root `go.mod` to enable `DecryptOAEP`. In that application's root directory, run:
 
-    go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261009203706-c682bc1db34c
+    go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261107023153-21534d503c8c
     go mod tidy
 
 Dependency replacements do not propagate. With the original upstream dependency, the library still compiles and legacy calls remain available, while `DecryptOAEP` returns `ErrOAEPUnsupported` before decryption because that implementation ignores OAEP options. Public PIV package imports remain `github.com/go-piv/piv-go/piv`.

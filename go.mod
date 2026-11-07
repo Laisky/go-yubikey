@@ -42,4 +42,4 @@ require (
 )
 
 // Applications must copy this replacement; dependency replacements do not propagate.
-replace github.com/go-piv/piv-go => github.com/Laisky/piv-go v1.11.1-0.20261009203706-c682bc1db34c
+replace github.com/go-piv/piv-go => github.com/Laisky/piv-go v1.11.1-0.20261107023153-21534d503c8c
