@@ -14,11 +14,11 @@ The actual historical encryptor returns raw RSA bytes with no version or algorit
 
 The application's root `go.mod` must explicitly select the compatibility fork:
 
-    replace github.com/go-piv/piv-go => github.com/Laisky/piv-go v1.11.1-0.20261009203706-c682bc1db34c
+    replace github.com/go-piv/piv-go => github.com/Laisky/piv-go v1.11.1-0.20261107023153-21534d503c8c
 
 For an existing application that already imports the upgraded v2 library, this is the only new module directive required for OAEP decryption. From the directory containing that application's `go.mod`, run:
 
-    go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261009203706-c682bc1db34c
+    go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261107023153-21534d503c8c
     go mod tidy
 
 Keep imports as `github.com/go-piv/piv-go/piv`. The wrapper already requires upstream `v1.11.0`; the root replacement supplies the reviewed fork's source for that requirement. Do not add a second own-namespace PIV import. This replacement is not required for `EncryptOAEP`, which uses standard public-key encryption, or for continuing to decrypt existing legacy data.
@@ -26,6 +26,12 @@ Keep imports as `github.com/go-piv/piv-go/piv`. The wrapper already requires ups
 Use the exact reviewed version from this repository's `go.mod`. The fork declares the original module namespace and keeps original internal imports, preserving public type identity and selecting a single PIV implementation. A dependency's replacement does not propagate to an application. Without the replacement, old APIs build and behave as before; `DecryptOAEP` fails closed with `ErrOAEPUnsupported` before private decryption, rather than trusting ignored options. Its capability check is structural and depends on the concrete reviewed RSA implementation, not a guessed version or trial decryption.
 
 For an application-created versioned record, select the operation from a trusted algorithm/version field: historical PKCS #1 v1.5 records use `DecryptLegacy`; new OAEP-SHA256 records use `DecryptOAEP`. Never change an existing unversioned record's meaning, and never choose a second algorithm after a decoding failure. This patch does not invent a new on-disk envelope or alter the user's unseen dataset.
+
+## Card handle release
+
+`ListCards(false)` now closes the cards it already opened before it returns an open error. `ListCards(true)`, successful listings and the returned errors are unchanged, and callers still close every card they receive.
+
+A failed `piv.Open` returns no handle, so this library cannot release what it acquired. That fix lives in the pinned fork ([Laisky/piv-go#4](https://github.com/Laisky/piv-go/pull/4)): `Open` releases the card handle and PC/SC context when the transaction or the PIV applet select fails, and `Connect` frees the reader name it passes to PC/SC. Before it, every probed card without the PIV applet stayed exclusively locked until the process exited, and repeated failures could exhaust pcscd's host-wide limit of 200 client contexts. The fork's Go changes since `c682bc1db34c` are limited to these releases; successful opens, error messages and RSA behavior are unchanged. An application that keeps the earlier pin still builds and behaves as before; moving its root replacement to the version above picks up the release fix. No key, PIN, card object or ciphertext is involved.
 
 ## Why the library cannot select this fork transparently
 

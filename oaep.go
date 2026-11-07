@@ -16,7 +16,7 @@ import (
 // to honor RSA-OAEP options. No decryption or fallback is performed.
 var ErrOAEPUnsupported = errors.New(
 	"RSA-OAEP unavailable: in the application's root module run " +
-		"go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261009203706-c682bc1db34c" +
+		"go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261107023153-21534d503c8c" +
 		", then go mod tidy; see COMPATIBILITY.md",
 )
 

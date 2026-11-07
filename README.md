@@ -10,7 +10,7 @@ A Go library that provides high-level utilities for YubiKey PIV (Personal Identi
 | Version | Go     |
 | ------- | ------ |
 | v1      | 1.20+  |
-| v2      | 1.25+  |
+| v2      | 1.26+  |
 
 ## Prerequisites
 
@@ -52,6 +52,9 @@ func main() {
             c.Close()
         }
     }()
+    if len(cards) == 0 {
+        log.Fatal("no YubiKey found")
+    }
 
     fmt.Printf("Found %d YubiKey(s)\n", len(cards))
 
@@ -73,7 +76,7 @@ For new data, use `EncryptOAEP` and `DecryptOAEP` explicitly. These use one RSA-
 
 The application must explicitly select the reviewed compatibility fork in its root `go.mod` to enable `DecryptOAEP`. In that application's root directory, run:
 
-    go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261009203706-c682bc1db34c
+    go mod edit -replace=github.com/go-piv/piv-go=github.com/Laisky/piv-go@v1.11.1-0.20261107023153-21534d503c8c
     go mod tidy
 
 Dependency replacements do not propagate. With the original upstream dependency, the library still compiles and legacy calls remain available, while `DecryptOAEP` returns `ErrOAEPUnsupported` before decryption because that implementation ignores OAEP options. Public PIV package imports remain `github.com/go-piv/piv-go/piv`.
@@ -84,7 +87,7 @@ See [COMPATIBILITY.md](COMPATIBILITY.md) for the version-selection and migration
 
 ### Card Management
 
-- **`ListCards(skipInvalidCard bool) ([]*piv.YubiKey, error)`** — Discover and open all connected YubiKey devices. Set `skipInvalidCard` to `true` to silently skip inaccessible cards.
+- **`ListCards(skipInvalidCard bool) ([]*piv.YubiKey, error)`** — Discover and open all connected YubiKey devices. Set `skipInvalidCard` to `true` to silently skip inaccessible cards. With `false`, the first card that fails to open makes `ListCards` close the cards it already opened and return the error. Close every returned card when done; a YubiKey accepts only one connection at a time.
 
 - **`ResetForPIV(card *piv.YubiKey, pin string, opts ...ResetForPIVOption) error`** — Factory-reset a YubiKey and configure it for PIV: sets a random PUK, applies the given PIN, and generates an RSA 2048 key. Options: `WithSlot(slot)`, `WithRequireTouch()`.
 
